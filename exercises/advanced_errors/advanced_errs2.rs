@@ -16,8 +16,6 @@
 // 4. Complete the partial implementation of `Display` for
 //    `ParseClimateError`.
 
-// I AM NOT DONE
-
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
@@ -46,8 +44,9 @@ impl From<ParseIntError> for ParseClimateError {
 // `ParseFloatError` values.
 impl From<ParseFloatError> for ParseClimateError {
     fn from(e: ParseFloatError) -> Self {
-        // TODO: Complete this function
+        Self::ParseFloat(e)
     }
+
 }
 
 // TODO: Implement a missing trait so that `main()` below will compile. It
@@ -58,12 +57,26 @@ impl From<ParseFloatError> for ParseClimateError {
 impl Display for ParseClimateError {
     // TODO: Complete this function so that it produces the correct strings
     // for each error variant.
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // Imports the variants to make the following code more compact.
-        use ParseClimateError::*;
+    
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            NoCity => write!(f, "no city name"),
-            ParseFloat(e) => write!(f, "error parsing temperature: {}", e),
+            ParseClimateError::Empty => write!(f, "empty input"),
+            ParseClimateError::BadLen => write!(f, "incorrect number of fields"),
+            ParseClimateError::NoCity => write!(f, "no city name"),
+            ParseClimateError::ParseInt(e) => write!(f, "error parsing year: {}", e),
+            ParseClimateError::ParseFloat(e) => write!(f, "error parsing temperature: {}", e),
+        }
+    }
+
+    
+}
+
+impl Error for ParseClimateError{
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ParseClimateError::ParseInt(e) => Some(e),
+            ParseClimateError::ParseFloat(e) => Some(e),
+            _ => None,
         }
     }
 }
@@ -85,18 +98,50 @@ struct Climate {
 // 6. Return an `Ok` value containing the completed `Climate` value.
 impl FromStr for Climate {
     type Err = ParseClimateError;
-    // TODO: Complete this function by making it handle the missing error
-    // cases.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let v: Vec<_> = s.split(',').collect();
-        let (city, year, temp) = match &v[..] {
-            [city, year, temp] => (city.to_string(), year, temp),
-            _ => return Err(ParseClimateError::BadLen),
-        };
-        let year: u32 = year.parse()?;
-        let temp: f32 = temp.parse()?;
-        Ok(Climate { city, year, temp })
+        
+        if s.len() == 0 {
+            return Err(ParseClimateError::Empty);
+        }
+        let mut s = s.split(",");
+        
+        let sn  = s.next();
+
+        if sn.is_none (){
+            return Err(ParseClimateError::BadLen);
+        }
+        let city = sn.unwrap();
+
+        if city.len() == 0 {
+            return Err(ParseClimateError::NoCity);
+        }
+       
+        let year = s.next().unwrap();
+        let sn  = s.next();
+        if sn.is_none() {
+            return Err(ParseClimateError::BadLen);
+        }
+
+        let temp = sn.unwrap();
+        match year.parse::<u32>() {
+            Ok(year) => 
+                match temp.parse::<f32>() {
+                    Ok(temp) => 
+                        if s.next().is_some(){
+                            return Err(ParseClimateError::BadLen);
+                        } else {
+                            return Ok(Climate {
+                                city: String::from(city),
+                                year: year,
+                                temp: temp,
+                            });
+                        },
+                    Err(e) => return Err(ParseClimateError::ParseFloat(e))
+                },
+            Err(e) => return Err(ParseClimateError::ParseInt(e))
+        }
     }
+
 }
 
 // Don't change anything below this line (other than to enable ignored

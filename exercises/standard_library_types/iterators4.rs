@@ -1,6 +1,6 @@
 // iterators4.rs
 
-// I AM NOT DONE
+// HARD HARD HARD
 
 pub fn factorial(num: u64) -> u64 {
     // Complete this function to return the factorial of num
@@ -12,6 +12,13 @@ pub fn factorial(num: u64) -> u64 {
     // For an extra challenge, don't use:
     // - recursion
     // Execute `rustlings hint iterators4` for hints.
+    // if num == 0 {
+    //     return 1;
+    // } else {
+    //     return num * factorial(num - 1);
+    // }
+    (1..=num).fold(0, |acc, x| acc + x); // wrong
+    (1..=num).fold(1, |acc, x| acc * x)
 }
 
 #[cfg(test)]
